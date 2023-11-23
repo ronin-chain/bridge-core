@@ -1,4 +1,4 @@
-# Bridge-core
+# Bridge-core 
 Bridge core is an event fetching library. This library automatically fetch logs from chain then invoke the perspective events. Callback functions will be provided in application side.
 ## How to create an applicationn
 ### Preparation
