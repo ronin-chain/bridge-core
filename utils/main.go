@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/crypto/sha3"
 
-	kmsUtils "github.com/axieinfinity/ronin-kms-client/utils"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -167,7 +167,7 @@ func newKeyedTransactorWithChainID(signMethod ISign, chainID *big.Int) (*bind.Tr
 			if address != keyAddr {
 				return nil, bind.ErrNotAuthorized
 			}
-			encodedTx, err := kmsUtils.RlpEncode(tx, chainID)
+			encodedTx, err := RlpEncode(tx, chainID)
 			if err != nil {
 				return nil, err
 			}
@@ -293,4 +293,62 @@ func (u *utils) UnpackLog(smcAbi abi.ABI, out interface{}, event string, data []
 		}
 	}
 	return abi.ParseTopics(out, indexed, log.Topics[1:])
+}
+
+func RlpEncode(tx *types.Transaction, chainID *big.Int) ([]byte, error) {
+	data := new(bytes.Buffer)
+	var txData interface{}
+
+	if chainID == nil { // homestead
+		txData = []interface{}{
+			tx.Nonce(),
+			tx.GasPrice(),
+			tx.Gas(),
+			tx.To(),
+			tx.Value(),
+			tx.Data(),
+		}
+	} else { // london
+		if tx.Type() == types.LegacyTxType {
+			txData = []interface{}{
+				tx.Nonce(),
+				tx.GasPrice(),
+				tx.Gas(),
+				tx.To(),
+				tx.Value(),
+				tx.Data(),
+				chainID, uint(0), uint(0),
+			}
+		} else if tx.Type() == types.AccessListTxType {
+			data.Write([]byte{tx.Type()})
+			txData = []interface{}{
+				chainID,
+				tx.Nonce(),
+				tx.GasPrice(),
+				tx.Gas(),
+				tx.To(),
+				tx.Value(),
+				tx.Data(),
+				tx.AccessList(),
+			}
+		} else { // types.DynamicFeeTxType
+			data.Write([]byte{tx.Type()})
+			txData = []interface{}{
+				chainID,
+				tx.Nonce(),
+				tx.GasTipCap(),
+				tx.GasFeeCap(),
+				tx.Gas(),
+				tx.To(),
+				tx.Value(),
+				tx.Data(),
+				tx.AccessList(),
+			}
+		}
+	}
+	if err := rlp.Encode(data, txData); err != nil {
+		return nil, err
+	}
+
+	return data.Bytes(), nil
 }

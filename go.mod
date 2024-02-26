@@ -5,8 +5,6 @@ replace github.com/ethereum/go-ethereum => github.com/axieinfinity/ronin v1.10.4
 go 1.17
 
 require (
-	github.com/axieinfinity/bridge-contracts v0.0.0-20220731110242-d273b578b657
-	github.com/axieinfinity/ronin-kms-client v0.0.0-20220805072849-960e04981b70
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/go-stack/stack v1.8.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -32,6 +30,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
@@ -72,8 +71,6 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
-	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/grpc v1.56.3 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
