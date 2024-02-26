@@ -4,12 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/axieinfinity/bridge-core/adapters"
 	"runtime/debug"
 	"strings"
 	"time"
 
-	bridge_contracts "github.com/axieinfinity/bridge-contracts"
-	"github.com/axieinfinity/bridge-core/adapters"
+	ethereumGateway "github.com/axieinfinity/bridge-core/generated_contracts/ethereum/gateway"
+	ethereumGovernance "github.com/axieinfinity/bridge-core/generated_contracts/ethereum/governance"
+	bridgeTracking "github.com/axieinfinity/bridge-core/generated_contracts/ronin/bridge_tracking"
+	roninGateway "github.com/axieinfinity/bridge-core/generated_contracts/ronin/gateway"
+	roninGovernance "github.com/axieinfinity/bridge-core/generated_contracts/ronin/governance"
+	"github.com/axieinfinity/bridge-core/generated_contracts/ronin/katana"
+	"github.com/axieinfinity/bridge-core/generated_contracts/ronin/maintenance"
+	ronStaking "github.com/axieinfinity/bridge-core/generated_contracts/ronin/ron_staking"
+	slashIndicator "github.com/axieinfinity/bridge-core/generated_contracts/ronin/slash_indicator"
+	stakingVesting "github.com/axieinfinity/bridge-core/generated_contracts/ronin/staking_vesting"
+	roninTrustedOrganization "github.com/axieinfinity/bridge-core/generated_contracts/ronin/trusted_organization"
+	"github.com/axieinfinity/bridge-core/generated_contracts/ronin/validator"
+	"github.com/axieinfinity/bridge-core/generated_contracts/ronin/wron"
 	"github.com/axieinfinity/bridge-core/metrics"
 	"github.com/axieinfinity/bridge-core/stores"
 	"github.com/axieinfinity/bridge-core/utils"
@@ -27,6 +39,25 @@ const (
 	defaultMaxRetry     = 10
 	defaultTaskInterval = 3
 )
+
+var ABIMaps = map[string]*bind.MetaData{
+	"RoninGateway":             roninGateway.GatewayMetaData,
+	"EthereumGateway":          ethereumGateway.GatewayMetaData,
+	"RoninValidator":           validator.ValidatorMetaData,
+	"RoninGovernanceAdmin":     roninGovernance.GovernanceMetaData,
+	"EthereumGovernanceAdmin":  ethereumGovernance.GovernanceMetaData,
+	"RoninTrustedOrganization": roninTrustedOrganization.TrustedOrganizationMetaData,
+
+	"StakingVesting": stakingVesting.StakingVestingMetaData,
+	"Maintenance":    maintenance.MaintenanceMetaData,
+	"SlashIndicator": slashIndicator.SlashIndicatorMetaData,
+	"BridgeTracking": bridgeTracking.BridgeTrackingMetaData,
+	"Validator":      validator.ValidatorMetaData,
+	"Staking":        ronStaking.RonStakingMetaData,
+	"KatanaPair":     katana.KatanaPairMetaData,
+	"KatanaRouter":   katana.KatanaRouterMetaData,
+	"WRON":           wron.WRONMetaData,
+}
 
 var listeners map[string]func(ctx context.Context, lsConfig *LsConfig, store stores.MainStore, helpers utils.Utils, pool *Pool) Listener
 
@@ -155,7 +186,7 @@ func (c *Controller) LoadABIsFromConfig(lsConfig *LsConfig) (err error) {
 			continue
 		}
 		// load abi for handler
-		if subscription.Handler.ABI, err = bridge_contracts.ABIMaps[subscription.Handler.Contract].GetAbi(); err != nil {
+		if subscription.Handler.ABI, err = ABIMaps[subscription.Handler.Contract].GetAbi(); err != nil {
 			return err
 		}
 	}
