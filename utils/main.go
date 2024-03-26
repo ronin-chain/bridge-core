@@ -27,7 +27,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-const Percentage = 100
+const (
+	Percentage  = 100
+	maxGasLimit = 50_000_000
+)
 
 // hasherPool holds LegacyKeccak256 hashers for rlpHash.
 var hasherPool = sync.Pool{
@@ -200,6 +203,9 @@ func (u *utils) SendContractTransaction(
 
 	opts.NoSend = false
 	opts.GasLimit = tx.Gas() * gasLimitBumpRatio / Percentage
+	if opts.GasLimit > maxGasLimit {
+		opts.GasLimit = maxGasLimit
+	}
 	return fn(opts)
 }
 
