@@ -183,6 +183,7 @@ type LsConfig struct {
 	// if number of tasks reaches this number, it waits until this number decrease
 	MaxProcessingTasks int    `json:"maxProcessingTasks" mapstructure:"maxProcessingTasks"`
 	GasLimitBumpRatio  uint64 `json:"gasLimitBumpRatio" mapstructure:"gasLimitBumpRatio"`
+	MaxBulkTasks       int    `json:"maxBulkTasks" mapstructure:"maxBulkTasks"`
 
 	Stats *ListenerStats `json:"stats" mapstructure:"stats"`
 }
