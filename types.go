@@ -185,6 +185,9 @@ type LsConfig struct {
 	GasLimitBumpRatio  uint64 `json:"gasLimitBumpRatio" mapstructure:"gasLimitBumpRatio"`
 	MaxBulkTasks       int    `json:"maxBulkTasks" mapstructure:"maxBulkTasks"`
 
+	// The bridge service will create sync reward transaction when in-contract sync reward fails
+	EnableSyncReward bool `json:"enableSyncReward" mapstructure:"enableSyncReward"`
+
 	Stats *ListenerStats `json:"stats" mapstructure:"stats"`
 }
 
