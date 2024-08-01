@@ -123,7 +123,7 @@ func (e *Job) GetTransaction() bridge_core.Transaction {
 	return nil
 }
 
-func (e *Job) Save() error {
+func (e *Job) Save(_ string) error {
 	return nil
 }
 
