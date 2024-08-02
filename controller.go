@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/axieinfinity/bridge-core/adapters"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/axieinfinity/bridge-core/adapters"
 
 	ethereumGateway "github.com/axieinfinity/bridge-core/generated_contracts/ethereum/gateway"
 	ethereumGovernance "github.com/axieinfinity/bridge-core/generated_contracts/ethereum/governance"
@@ -38,6 +39,7 @@ const (
 	defaultBatchSize    = 100
 	defaultMaxRetry     = 10
 	defaultTaskInterval = 3
+	retryDuration       = 30 * time.Second
 )
 
 var ABIMaps = map[string]*bind.MetaData{
@@ -287,7 +289,7 @@ func (c *Controller) startListeners() {
 			continue
 		}
 		go listener.Start()
-		go c.startListening(listener, 0)
+		go c.startListening(listener)
 	}
 }
 
@@ -298,42 +300,43 @@ func (c *Controller) closeListeners() {
 }
 
 // startListener starts listening events for a listener, it comes with a tryCount which close this listener if tryCount reaches 10 times
-func (c *Controller) startListening(listener Listener, tryCount int) {
+func (c *Controller) startListening(listener Listener) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("[Controller][startListener] recover from panic", "message", r, "trace", string(debug.Stack()))
 		}
 	}()
-	// panic when tryCount reaches 10 times panic
-	if tryCount >= defaultMaxRetry {
-		log.Error("[Controller][startListener] maximum try has been reached, close listener", "listener", listener.GetName())
-		listener.Close()
-		return
-	}
 
-	// check if listener is behind or not
-	latestBlockHeight, err := listener.GetLatestBlockHeight()
-	if err != nil {
-		log.Error("[Controller][startListener] error while get latest block", "err", err, "listener", listener.GetName())
-		// otherwise retry startListener
-		time.Sleep(time.Duration(tryCount+1) * time.Second)
-		c.startListening(listener, tryCount+1)
-		return
-	}
-	// reset fromHeight if it is out of allowed blocks range
-	if listener.Config().ProcessWithinBlocks > 0 && latestBlockHeight-listener.GetInitHeight() > listener.Config().ProcessWithinBlocks {
-		listener.SetInitHeight(latestBlockHeight - listener.Config().ProcessWithinBlocks)
-	}
-	log.Info("[Controller] Latest Block", "height", latestBlockHeight, "listener", listener.GetName())
-	// start processing past blocks
-	currentBlock := listener.GetCurrentBlock()
-	if currentBlock != nil {
-		if err := c.processBehindBlock(listener, currentBlock.GetHeight(), latestBlockHeight); err != nil {
-			log.Error("[Controller][startListener] error while processing behind block", "err", err, "height", currentBlock.GetHeight(), "latestBlockHeight", latestBlockHeight)
-			time.Sleep(time.Duration(tryCount+1) * time.Second)
-			c.startListening(listener, tryCount+1)
-			return
+	var (
+		latestBlockHeight uint64
+		currentBlock      Block
+		err               error
+	)
+
+	for {
+		// check if listener is behind or not
+		latestBlockHeight, err = listener.GetLatestBlockHeight()
+		if err != nil {
+			log.Error("[Controller][startListener] error while get latest block", "err", err, "listener", listener.GetName())
+			// otherwise retry startListener
+			time.Sleep(retryDuration)
+			continue
 		}
+		// reset fromHeight if it is out of allowed blocks range
+		if listener.Config().ProcessWithinBlocks > 0 && latestBlockHeight-listener.GetInitHeight() > listener.Config().ProcessWithinBlocks {
+			listener.SetInitHeight(latestBlockHeight - listener.Config().ProcessWithinBlocks)
+		}
+		log.Info("[Controller] Latest Block", "height", latestBlockHeight, "listener", listener.GetName())
+		// start processing past blocks
+		currentBlock := listener.GetCurrentBlock()
+		if currentBlock != nil {
+			if err := c.processBehindBlock(listener, currentBlock.GetHeight(), latestBlockHeight); err != nil {
+				log.Error("[Controller][startListener] error while processing behind block", "err", err, "height", currentBlock.GetHeight(), "latestBlockHeight", latestBlockHeight)
+				time.Sleep(retryDuration)
+				continue
+			}
+		}
+		break
 	}
 
 	// start stats reporter
